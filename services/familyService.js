@@ -1,10 +1,6 @@
-const Family = require('../models/Family');
+import Family from '../models/Family.js';
 
-const createFamily = async (familyData) => {
+export const createFamily = async (familyData) => {
   const newFamily = new Family(familyData);
   return await newFamily.save();
-};
-
-module.exports = {
-  createFamily,
 };

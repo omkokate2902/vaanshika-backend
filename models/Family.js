@@ -1,7 +1,7 @@
-const mongoose = require('mongoose');
+import mongoose from 'mongoose';
 
 const familySchema = new mongoose.Schema({
-  user_id: {
+  userId: {
     type: String,
     required: true,
     unique: true,
@@ -32,11 +32,11 @@ const familySchema = new mongoose.Schema({
         attributes: {
           DOB: Date,
         },
-      }]
-    }]
-  }]
+      }],
+    }],
+  }],
 });
 
 const Family = mongoose.model('Family', familySchema, 'families');
 
-module.exports = Family;
+export default Family;

@@ -1,15 +1,16 @@
-const express = require("express");
-const cookieParser = require("cookie-parser");
-const connectDB = require("./config/db");
-const authRoutes = require("./routes/authRoutes");
-const familyRoutes = require("./routes/familyRoutes");
-const { protect } = require("./middlewares/authMiddleware");
-const cors = require("cors"); // Import the CORS package
+import express from "express";
+import cors from "cors";
+import { connectDB } from './config/db.js';
+import authRoutes from "./routes/authRoutes.js";
+import familyRoutes from "./routes/familyRoutes.js";
+import { protect } from "./middlewares/authMiddleware.js";
 
 const app = express();
+
+// CORS Configuration
 app.use(
   cors({
-    origin: "http://localhost:3001", // Allow requests from this origin
+    origin: "*", // Allow requests from this origin
     credentials: true, // Allow cookies to be sent
   })
 );
@@ -17,18 +18,18 @@ app.use(
 // Connect to MongoDB
 connectDB();
 
-app.get("/", (req, res) => {
-  res.send("Testing Branch Works fine on reboot");
-});
-
 // Middleware
 app.use(express.json());
-app.use(cookieParser());
 
 // Routes
+app.get("/", (req, res) => {
+  res.send("Testing Branch Works!");
+});
+
 app.use("/api/auth", authRoutes);
-app.use("/api", protect, familyRoutes);
+
+app.use("/api/family", protect, familyRoutes);
 
 // Start server
-const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
+const PORT = process.env.PORT;
+app.listen(PORT, () => console.log(`🚀 Server running on port ${PORT}`));

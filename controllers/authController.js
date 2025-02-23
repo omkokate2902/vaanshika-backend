@@ -1,65 +1,85 @@
-const User = require("../models/User");
-const jwt = require("jsonwebtoken");
-const { JWT_SECRET, jwtExpire } = require("../config/auth");
-const { v4: uuidv4 } = require("uuid"); // Import uuid library
+import { clientAuthInstance } from '../services/firebaseService.js';
+import {
+  createUserWithEmailAndPassword,
+  signInWithEmailAndPassword,
+  sendPasswordResetEmail,
+  sendEmailVerification,
+  signOut,
+} from 'firebase/auth';
+import User from '../models/User.js';
 
-// Generate JWT with user_id
-const generateToken = (id, userUniqueId) => {
-  return jwt.sign({ id, user_id: userUniqueId }, JWT_SECRET, {
-    expiresIn: jwtExpire,
-  });
-};
-
-// Register User
-const registerUser = async (req, res) => {
-  const { username, email, password } = req.body;
+// 🚀 Register User with Email Verification
+export const registerUser = async (req, res) => {
+  const { name, email, password } = req.body;
 
   try {
-    const userExists = await User.findOne({ email });
-    if (userExists)
-      return res.status(400).json({ error: "User already exists" });
+    const existingUser = await User.findOne({ email });
+    if (existingUser) return res.status(409).json({ message: 'User already exists' });
 
-    // Create user with a unique user_id
-    const user = await User.create({
-      username,
+    const userCredential = await createUserWithEmailAndPassword(clientAuthInstance, email, password);
+    await sendEmailVerification(userCredential.user);
+
+    const newUser = new User({
+      name,
       email,
-      password,
-      user_id: uuidv4(),
+      userId: userCredential.user.uid,
+      isVerified: false,
     });
+    await newUser.save();
 
-    // Generate token with user_id
-    const token = generateToken(user._id, user.user_id);
-    res.cookie("token", token, { httpOnly: true });
-    res.status(201).json({ success: true, data: user });
+    res.status(201).json({ message: 'User registered successfully. Verification email sent.' });
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    console.error('Register Error:', error.message);
+    res.status(500).json({ message: error.message });
   }
 };
 
-const loginUser = async (req, res) => {
+// 🔑 Login User with Email Verification Check
+export const loginUser = async (req, res) => {
   const { email, password } = req.body;
 
   try {
-    const user = await User.findOne({ email });
-    if (!user || !(await user.comparePassword(password))) {
-      return res.status(401).json({ error: "Invalid credentials" });
+    const userCredential = await signInWithEmailAndPassword(clientAuthInstance, email, password);
+
+    if (!userCredential.user.emailVerified) {
+      return res.status(403).json({ message: 'Email not verified. Please verify your email.' });
     }
-    const token = generateToken(user._id, user.user_id);
-    res.cookie("token", token, { httpOnly: true });
-    res.json({ success: true, data: user, token });
+
+    await User.findOneAndUpdate(
+      { userId: userCredential.user.uid },
+      { isVerified: true },
+      { new: true }
+    );
+
+    const token = await userCredential.user.getIdToken();
+    res.setHeader('Authorization', `Bearer ${token}`);
+    res.status(200).json({ message: 'Login successful' });
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    console.error('Login Error:', error.message);
+    res.status(500).json({ message: error.message });
   }
 };
 
-// Logout User
-const logoutUser = (req, res) => {
-  res.cookie("token", "", { httpOnly: true, expires: new Date(0) });
-  res.json({ success: true, message: "Logged out" });
+// 🔒 Forgot Password - Send Reset Email
+export const forgotPassword = async (req, res) => {
+  const { email } = req.body;
+
+  try {
+    await sendPasswordResetEmail(clientAuthInstance, email);
+    res.status(200).json({ message: 'Password reset email sent' });
+  } catch (error) {
+    console.error('Forgot Password Error:', error.message);
+    res.status(500).json({ message: error.message });
+  }
 };
 
-module.exports = {
-  registerUser,
-  loginUser,
-  logoutUser,
+// 🚪 Logout User
+export const logoutUser = async (req, res) => {
+  try {
+    await signOut(clientAuthInstance);
+    res.status(200).json({ message: 'User logged out successfully.' });
+  } catch (error) {
+    console.error('Logout Error:', error.message);
+    res.status(500).json({ message: 'Failed to log out. Please try again.' });
+  }
 };

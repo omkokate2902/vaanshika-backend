@@ -1,17 +1,22 @@
-const mongoose = require('mongoose');
-require('dotenv').config();
+import mongoose from 'mongoose';
+import dotenv from 'dotenv';
 
+dotenv.config();
 
-const connectDB = async () => {
+export const connectDB = async () => {
   try {
     await mongoose.connect(process.env.DB_URI, {
-      dbName: 'trees', // Specify the database name here
-    });
-    console.log('Connected to MongoDB');
+      dbName: 'trees',
+});
+
+    console.log('✅ Connected to MongoDB');
+
+    // Enable debug mode in development
+    if (process.env.NODE_ENV === 'development') {
+      mongoose.set('debug', true);
+    }
   } catch (err) {
-    console.error('MongoDB connection error:', err);
-    process.exit(1);
+    console.error('❌ MongoDB connection error:', err);
+    process.exit(1); // Exit process on failure
   }
 };
-
-module.exports = connectDB;
