@@ -10,7 +10,7 @@ dotenv.config();
 
 // Import service account using createRequire for ESM compatibility
 const require = createRequire(import.meta.url);
-const serviceAccount = require('../vaanshika-firebase-adminsdk-fbsvc-7be75570a4.json');
+const serviceAccount = require('../vaanshika-firebase-adminsdk-fbsvc-b9fbe6b15d.json');
 
 // ✅ Initialize Firebase Admin SDK (for server-side operations)
 initializeAdminApp({
